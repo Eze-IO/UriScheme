@@ -617,8 +617,7 @@ namespace Eze.IO.Application
                 }
                 else
                 {
-                    throw ex;
-                    //throw new InvalidOperationException(ex.Message);
+                    throw new InvalidOperationException(ex.Message);
                 }
             }
         }
