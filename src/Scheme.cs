@@ -1,15 +1,11 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Security;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.ComponentModel;
-using System.Windows.Forms;
 
 namespace Eze.IO.Application
 {
@@ -19,11 +15,12 @@ namespace Eze.IO.Application
     public static partial class UriScheme
     {
         /// <summary>
-        /// Register a uri scheme
+        /// Register a new uri scheme
         /// </summary>
         /// <param name="uri">The <see cref="CustomUriBuilder"/> to be used as a uri scheme</param>
         /// <param name="name">The name of application handler</param>
         /// <param name="register">The type of <see cref="RegisterScheme"/></param>
+        /// <exception cref="FormatException">Exception thrown when <see cref="CustomUriBuilder.Scheme"/> has invalid character(s), or spaces</exception>
         /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
         /// <exception cref="InvalidOperationException">Exception thrown when an <see cref="IOException"/> occurs or another method is running simultaneously</exception>
         /// <exception cref="FileNotFoundException">Exception thrown when the <see cref="CustomUriBuilder"/> <seealso cref="Path"/> property or the <see cref="CustomUriBuilder"/> Icon property doesn't exist</exception>
@@ -32,28 +29,15 @@ namespace Eze.IO.Application
         public static void Register(CustomUriBuilder uri,
             string name, RegisterScheme register = RegisterScheme.OnCurrentUser)
         {
-            if(string.IsNullOrEmpty(uri.Query))
-                Register(uri.Scheme, uri.Path, uri.Port, name, uri.Queries, uri.Icon.File, uri.Icon.Number, register);
+            if (string.IsNullOrEmpty(uri.Query))
+                Register(uri.Scheme, uri.Path, name, uri.Queries, uri.Icon.File, uri.Icon.Number, register);
             else
-                Register(uri.Scheme, uri.Path, uri.Port, name, uri.Query, uri.Icon.File, uri.Icon.Number, register);
+                Register(uri.Scheme, uri.Path, name, uri.Query, uri.Icon.File, uri.Icon.Number, register);
         }
 
         /// <summary>
-        /// Register a uri scheme
-        /// <para>throws <see cref="ApplicationException"/> if uri scheme already exist</para>
+        /// Register new a uri scheme
         /// </summary>
-        /// <param name="protocol">The uri scheme</param>
-        /// <param name="app">The file path to application.</param>
-        /// <param name="port">The port number associated with uri scheme</param>
-        /// <param name="name">The name of application handler</param>
-        /// <param name="icon">The icon associated with application</param>
-        /// <param name="iconNumber">The icon number associated with <paramref name="icon"/></param>
-        /// <param name="register">The type of <see cref="RegisterScheme"/></param>
-        /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
-        /// <exception cref="InvalidOperationException">Exception thrown when an <see cref="IOException"/> occurs or another method is running simultaneously</exception>
-        /// <exception cref="FileNotFoundException">Exception thrown when a <paramref name="app"/> or <paramref name="icon"/> file doesn't exist</exception>
-        /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="protocol"/> or <paramref name="name"/> parameters are null</exception>
-        /// <exception cref="UnauthorizedAccessException">Exception thrown when the proper permissions aren't given</exception>
         /// <example>
         /// Example on how to register uri scheme:
         /// <code>
@@ -62,73 +46,86 @@ namespace Eze.IO.Application
         ///     [STAThread]
         ///     static int Main(string[] args)
         ///     {
-        ///         UriScheme.Register("test://", "C:/Test/myapp.exe", 3305, "Test", "C:/Test/myapp.exe", 0, RegisterScheme.OnMachine);
+        ///         UriScheme.Register("test://", "C:/Test/myapp.exe", "Test", "C:/Test/myapp.exe", 0, RegisterScheme.OnMachine);
+        ///         return 0;
         ///     }
         /// }
         /// </code>
         /// </example>
-        public static void Register(string protocol, string app, int port,
-            string name, string icon = null, int iconNumber = 0, RegisterScheme register = RegisterScheme.OnCurrentUser)
-        {
-            CreateUri(protocol, app, port, name, icon, iconNumber, register);
-        }
-
-        /// <summary>
-        /// Register a uri scheme
-        /// </summary>
         /// <param name="protocol">The uri scheme</param>
         /// <param name="app">The file path to application.</param>
-        /// <param name="port">The port number associated with uri scheme</param>
         /// <param name="name">The name of application handler</param>
-        /// <param name="queries">The number of arguments to pass</param>
         /// <param name="icon">The icon associated with application</param>
         /// <param name="iconNumber">The icon number associated with <paramref name="icon"/></param>
         /// <param name="register">The type of <see cref="RegisterScheme"/></param>
+        /// <exception cref="FormatException">Exception thrown when <paramref name="protocol"/> has invalid character(s), or spaces</exception>
         /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
         /// <exception cref="InvalidOperationException">Exception thrown when an <see cref="IOException"/> occurs or another method is running simultaneously</exception>
         /// <exception cref="FileNotFoundException">Exception thrown when a <paramref name="app"/> or <paramref name="icon"/> file doesn't exist</exception>
         /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="protocol"/> or <paramref name="name"/> parameters are null</exception>
         /// <exception cref="UnauthorizedAccessException">Exception thrown when the proper permissions aren't given</exception>
-        public static void Register(string protocol, string app, int port,
-            string name, int queries, string icon = null, int iconNumber = 0, RegisterScheme register = RegisterScheme.OnCurrentUser)
+        public static void Register(string protocol, string app,
+            string name, string icon = null, int iconNumber = 0, RegisterScheme register = RegisterScheme.OnCurrentUser)
         {
-            CreateUri(protocol, app, port, name, icon, iconNumber, register, queries);
+            CreateUri(protocol, app, name, icon, iconNumber, register);
         }
 
         /// <summary>
-        /// Register a uri scheme
+        /// Register a new uri scheme
         /// </summary>
         /// <param name="protocol">The uri scheme</param>
         /// <param name="app">The file path to application.</param>
-        /// <param name="port">The port number associated with uri scheme</param>
+        /// <param name="name">The name of application handler</param>
+        /// <param name="queries">The number of arguments to pass</param>
+        /// <param name="icon">The icon associated with application</param>
+        /// <param name="iconNumber">The icon number associated with <paramref name="icon"/></param>
+        /// <param name="register">The type of <see cref="RegisterScheme"/></param>
+        /// <exception cref="FormatException">Exception thrown when <paramref name="protocol"/> has invalid character(s), or spaces</exception>
+        /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
+        /// <exception cref="InvalidOperationException">Exception thrown when an <see cref="IOException"/> occurs or another method is running simultaneously</exception>
+        /// <exception cref="FileNotFoundException">Exception thrown when a <paramref name="app"/> or <paramref name="icon"/> file doesn't exist</exception>
+        /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="protocol"/> or <paramref name="name"/> parameters are null</exception>
+        /// <exception cref="UnauthorizedAccessException">Exception thrown when the proper permissions aren't given</exception>
+        public static void Register(string protocol, string app,
+            string name, int queries, string icon = null, int iconNumber = 0, RegisterScheme register = RegisterScheme.OnCurrentUser)
+        {
+            CreateUri(protocol, app, name, icon, iconNumber, register, queries);
+        }
+
+        /// <summary>
+        /// Register a new uri scheme
+        /// </summary>
+        /// <param name="protocol">The uri scheme</param>
+        /// <param name="app">The file path to application.</param>
         /// <param name="name">The name of application handler</param>
         /// <param name="customQueries">The custom arguments to pass</param>
         /// <param name="icon">The icon associated with application</param>
         /// <param name="iconNumber">The icon number associated with <paramref name="icon"/></param>
         /// <param name="register">The type of <see cref="RegisterScheme"/></param>
+        /// <exception cref="FormatException">Exception thrown when <paramref name="protocol"/> has invalid character(s), or spaces</exception>
         /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
         /// <exception cref="InvalidOperationException">Exception thrown when an <see cref="IOException"/> occurs or another method is running simultaneously</exception> 
         /// <exception cref="FileNotFoundException">Exception thrown when a <paramref name="app"/> or <paramref name="icon"/> file doesn't exist</exception>
         /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="protocol"/>, <paramref name="name"/> or <paramref name="customQueries"/> parameters are null</exception>
         /// <exception cref="UnauthorizedAccessException">Exception thrown when the proper permissions aren't given</exception>
-        public static void Register(string protocol, string app, int port,
-            string name, string customQueries, string icon = null, int iconNumber = 0,RegisterScheme register = RegisterScheme.OnCurrentUser)
+        public static void Register(string protocol, string app,
+            string name, string customQueries, string icon = null, int iconNumber = 0, RegisterScheme register = RegisterScheme.OnCurrentUser)
         {
-            CreateUri(protocol, app, port, name, icon, iconNumber, register, customQueries);
+            CreateUri(protocol, app, name, icon, iconNumber, register, customQueries);
         }
 
-        private static void CreateUri(string protocol, string app, int port,
+        private static void CreateUri(string protocol, string app,
             string name, string icon = null, int iconNumber = 0, params object[] objects)
         {
-            if(!File.Exists(app))
+            if (!File.Exists(app))
                 throw new FileNotFoundException(string.Format("Couldn't locate file '{0}'",
                     app));
 
             if (string.IsNullOrEmpty(protocol))
-                throw new ArgumentNullException(protocol.GetType().Name);
+                throw new ArgumentNullException(nameof(protocol));
 
             if (string.IsNullOrEmpty(name))
-                throw new ArgumentNullException(name.GetType().Name);
+                throw new ArgumentNullException(nameof(name));
 
             using (CustomUriBuilder build = new CustomUriBuilder())
             {
@@ -141,6 +138,7 @@ namespace Eze.IO.Application
                 foreach (var o in objects)
                 {
                     var t = o.GetType();
+
                     if (t == typeof(RegisterScheme))
                     {
                         _scheme = (RegisterScheme)o;
@@ -151,10 +149,10 @@ namespace Eze.IO.Application
                     }
                     else if (t == typeof(String))
                     {
-                        _argstoPass = 0;
+                        _argstoPass = 1;
                         _custom = (string)o;
-                        if(string.IsNullOrEmpty(_custom))
-                            throw new ArgumentNullException(_custom.GetType().Name);
+                        if (string.IsNullOrEmpty(_custom))
+                            throw new ArgumentNullException(nameof(o));
                     }
                     else
                     {
@@ -164,12 +162,12 @@ namespace Eze.IO.Application
 
                 try
                 {
-                    if(_custom == null)
+                    if (_custom == null)
                     {
                         for (int i = 1; i <= _argstoPass; i++)
                         {
                             args.Append(string.Format(
-                                " %{0}", i));
+                                @" ""%{0}""", i));
                         }
                     }
                     else
@@ -178,13 +176,9 @@ namespace Eze.IO.Application
                                 " {0}", _custom));
                     }
 
-                    var _protocol = Regex.Match(protocol, @"(?<=://).+?(?=:|/|\Z)");
-                    if(_protocol.Success)
-                    {
-                        protocol = _protocol.Value;
-                    }
+                    protocol = FindSchemeText(protocol);
 
-                    if(!Uri.CheckSchemeName(protocol))
+                    if (!Uri.CheckSchemeName(protocol))
                     {
                         throw new FormatException(string.Format(
                             "'{0}' is not a valid scheme", protocol));
@@ -204,9 +198,9 @@ namespace Eze.IO.Application
                             throw new InvalidEnumArgumentException("register", (int)_scheme, typeof(RegisterScheme));
                     }
 
-                    if(key == null)
+                    if (key == null)
                     {
-                        switch(_scheme)
+                        switch (_scheme)
                         {
                             case RegisterScheme.OnCurrentUser:
                                 key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + name);
@@ -217,37 +211,36 @@ namespace Eze.IO.Application
                             default:
                                 throw new InvalidEnumArgumentException("register", (int)_scheme, typeof(RegisterScheme));
                         }
-                        
                     }
 
                     build.Port = 0;
-                    if(UriParser.IsKnownScheme(build.Scheme))
-                    {
+                    if (UriParser.IsKnownScheme(build.Scheme))
                         throw new ApplicationException("This scheme is already registered");
-                    }
 
-                    if(!string.IsNullOrEmpty(icon))
-                        if(!File.Exists(icon))
+                    if(Exist(protocol, name, _scheme))
+                        throw new ApplicationException("This scheme is already registered");
+
+                    if (!string.IsNullOrEmpty(icon))
+                        if (!File.Exists(icon))
                             throw new FileNotFoundException(string.Format("Couldn't locate file '{0}'",
                                 icon));
 
                     key.SetValue(string.Empty, string.Format("URL:{0} Protocol", build.Scheme));
                     key.SetValue("URL Protocol", string.Empty);
-                    if(!string.IsNullOrEmpty(icon))
+                    if (!string.IsNullOrEmpty(icon))
                     {
                         var _key = key.CreateSubKey(@"DefaultIcon");
                         _key.SetValue(string.Empty, string.Format("{0},{1}",
-                            icon,iconNumber));
+                            icon, iconNumber));
                     }
                     key = key.CreateSubKey(@"shell\open\command");
                     key.SetValue(string.Empty, app + args.ToString());
                     key.Close();
                     key.Dispose();
-
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
-                    if(ex is ObjectDisposedException)
+                    if (ex is ObjectDisposedException)
                     {
                         throw new InvalidOperationException("Error while writting to registry",
                              new InvalidOperationException(string.Format("A method in '{0}' class may have be running simultaneously", typeof(UriScheme).Name, ex)));
@@ -268,7 +261,18 @@ namespace Eze.IO.Application
                     throw ex;
                 }
             };
-            
+        }
+
+        private static String FindSchemeText(string protocol)
+        {
+            try
+            {
+                var _protocol = protocol;
+                if (_protocol.Contains("://"))
+                    _protocol = _protocol.Replace("://", string.Empty).Trim();
+                return _protocol;
+            }
+            catch { return protocol; }
         }
 
         private static CustomUriBuilder GetUri(string name, params object[] objects)
@@ -278,9 +282,11 @@ namespace Eze.IO.Application
                 CustomUriBuilder _result = new CustomUriBuilder();
                 RegistryKey key = Registry.LocalMachine;
                 RegisterScheme _scheme = RegisterScheme.OnCurrentUser;
-                foreach(var o in objects)
+
+                foreach (var o in objects)
                 {
                     var t = o.GetType();
+
                     if (t == typeof(RegisterScheme))
                     {
                         _scheme = (RegisterScheme)o;
@@ -291,7 +297,7 @@ namespace Eze.IO.Application
                     }
                 }
 
-                switch(_scheme)
+                switch (_scheme)
                 {
                     case RegisterScheme.OnCurrentUser:
                         key = Registry.CurrentUser.OpenSubKey(@"Software\Classes\" + name);
@@ -306,22 +312,25 @@ namespace Eze.IO.Application
                 if(key == null)
                 {
                     key.Dispose();
-                    throw new InvalidOperationException();
+                    throw new SecurityException();
                 }
 
                 var _protocol = (string)key.GetValue(null);
-                if(_protocol != null)
+
+                if (_protocol != null)
                 {
                     _result.Scheme = _protocol.Replace("URL:", string.Empty).Replace("Protocol", string.Empty).Trim();
                 }
 
                 var _key = key.OpenSubKey(@"DefaultIcon");
-                if(_key != null)
+
+                if (_key != null)
                 {
                     int n = 0;
                     string _file = string.Empty;
                     var icon = (string)_key.GetValue(null);
-                    if(icon != null)
+
+                    if (icon != null)
                     {
                         foreach (var i in icon.Split(','))
                         {
@@ -340,18 +349,20 @@ namespace Eze.IO.Application
                 }
                 key = key.OpenSubKey(@"shell\open\command");
 
-                if(key == null)
+                if (key == null)
                 {
                     var _query = 0;
                     var _key2 = (string)key.GetValue(null);
                     var _app = Regex.Match(_key2, @"^(?:[a-zA-Z]\:|\\\\[\w\.]+\\[\w.$]+)\\(?:[\w]+\\)*\w([\w.])+$", RegexOptions.None);
-                    if(_app.Success)
+
+                    if (_app.Success)
                     {
-                        if(!string.IsNullOrEmpty(_app.Value))
+                        if (!string.IsNullOrEmpty(_app.Value))
                             _result.Path = _app.Value;
 
                         var q = Regex.Match(_key2.Replace(_app.Value, string.Empty).Trim(), "^%[0-9]+$");
-                        if(q.Success)
+
+                        if (q.Success)
                         {
                             _query = q.Groups.Count;
                         }
@@ -363,7 +374,7 @@ namespace Eze.IO.Application
 
                     _result.Queries = _query;
                 }
-                
+
                 key.Dispose();
 
                 return _result;
@@ -381,43 +392,44 @@ namespace Eze.IO.Application
         /// <param name="name">The name of application handler</param>
         /// <param name="register">The type of <see cref="RegisterScheme"/></param>
         /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
-        /// <exception cref="InvalidOperationException">Exception thrown when invalid object is passed, scheme doesn't exist,or another method is running simultaneously</exception>
+        /// <exception cref="InvalidOperationException">Exception thrown when invalid object is passed, scheme doesn't exist, or another method is running simultaneously</exception>
         /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="name"/> parameters are null</exception>
         /// <exception cref="UnauthorizedAccessException">Exception thrown when the proper permissions aren't given</exception>
         public static void Unregister(CustomUriBuilder uri, string name, RegisterScheme register = RegisterScheme.OnCurrentUser)
         {
-            DeleteUri(uri.Scheme, uri.Port, name, register);
+            DeleteUri(uri.Scheme, name, register);
         }
 
         /// <summary>
         /// Unregister a uri scheme
         /// </summary>
         /// <param name="protocol">The uri scheme</param>
-        /// <param name="port">The port number associated with uri scheme</param>
         /// <param name="name">The name of application handler</param>
         /// <param name="register">The type of <see cref="RegisterScheme"/></param>
         /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
         /// <exception cref="InvalidOperationException">Exception thrown when invalid object is passed, scheme doesn't exist, or another method is running simultaneously</exception>
         /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="protocol"/> or <paramref name="name"/> parameters are null</exception>
         /// <exception cref="UnauthorizedAccessException">Exception thrown when the proper permissions aren't given</exception>
-        public static void Unregister(string protocol, int port, string name, RegisterScheme register = RegisterScheme.OnCurrentUser)
+        public static void Unregister(string protocol, string name, RegisterScheme register = RegisterScheme.OnCurrentUser)
         {
-            DeleteUri(protocol, port, name, register);
+            DeleteUri(protocol, name, register);
         }
 
-        private static void DeleteUri(string protocol, int port,
+        private static void DeleteUri(string protocol,
             string name, params object[] objects)
         {
             if (string.IsNullOrEmpty(protocol))
-                throw new ArgumentNullException(protocol.GetType().Name);
+                throw new ArgumentNullException(nameof(protocol));
 
             if (string.IsNullOrEmpty(name))
-                throw new ArgumentNullException(name.GetType().Name);
+                throw new ArgumentNullException(nameof(name));
 
             RegisterScheme _scheme = RegisterScheme.OnCurrentUser;
+
             foreach (var o in objects)
             {
                 var t = o.GetType();
+
                 if (t == typeof(RegisterScheme))
                 {
                     _scheme = (RegisterScheme)o;
@@ -428,20 +440,19 @@ namespace Eze.IO.Application
                 }
             }
 
-            if(!Exist(protocol, port, name, _scheme))
-            {
+            if(!Exist(protocol, name, _scheme))
                 throw new InvalidOperationException("The scheme or application name doesn't exist");
-            }
 
             try
             {
+                RegistryKey key = Registry.CurrentConfig;
                 switch (_scheme)
                 {
                     case RegisterScheme.OnCurrentUser:
-                        Registry.CurrentUser.DeleteSubKey(@"Software\Classes\" + name);
+                        Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\" + name);
                         break;
                     case RegisterScheme.OnMachine:
-                        Registry.LocalMachine.DeleteSubKey(@"Software\Classes\" + name);
+                        Registry.LocalMachine.DeleteSubKeyTree(@"Software\Classes\" + name);
                         break;
                     default:
                         throw new InvalidEnumArgumentException("register", (int)_scheme, typeof(RegisterScheme));
@@ -461,7 +472,15 @@ namespace Eze.IO.Application
 
                     throw new UnauthorizedAccessException("Failed to delete registry values, check your permissions");
                 }
-                else if(ex is ObjectDisposedException)
+                else if (ex is ArgumentNullException)
+                {
+                    throw ex;
+                }
+                else if (ex is InvalidEnumArgumentException)
+                {
+                    throw ex;
+                }
+                else if (ex is ObjectDisposedException)
                 {
                     throw new InvalidOperationException("Error while deleting entries in the registry",
                             new InvalidOperationException(string.Format("A method in '{0}' class may have be running simultaneously", typeof(UriScheme).Name, ex)));
@@ -485,14 +504,13 @@ namespace Eze.IO.Application
         public static Boolean Exist(CustomUriBuilder uri,
             string name, RegisterScheme register = RegisterScheme.OnCurrentUser)
         {
-            return UriExist(uri.Scheme, uri.Port, name, register);
+            return UriExist(uri.Scheme, name, register);
         }
 
         /// <summary>
         /// Determines if uri scheme already exist
         /// </summary>
         /// <param name="protocol">The uri scheme</param>
-        /// <param name="port">The port number associated with uri scheme</param>
         /// <param name="name">The name of application handler</param>
         /// <param name="register">The type of <see cref="RegisterScheme"/></param>
         /// <returns>Returns true if the uri scheme exist</returns>
@@ -500,21 +518,22 @@ namespace Eze.IO.Application
         /// <exception cref="InvalidOperationException">Exception thrown when an <see cref="IOException"/></exception>
         /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="name"/> or <paramref name="protocol"/> parameters are null</exception>
         /// <exception cref="UnauthorizedAccessException">Exception thrown when the proper permissions aren't given</exception>
-        public static Boolean Exist(string protocol, int port,
+        public static Boolean Exist(string protocol,
             string name, RegisterScheme register = RegisterScheme.OnCurrentUser)
         {
-           return UriExist(protocol, port, name, register);
+            return UriExist(protocol, name, register);
         }
 
-        private static Boolean UriExist(string protocol, int port,
+        private static Boolean UriExist(string protocol,
             string name, params object[] objects)
         {
             RegisterScheme _scheme = RegisterScheme.OnCurrentUser;
 
-            foreach(var o in objects)
+            foreach (var o in objects)
             {
                 var t = o.GetType();
-                if(t == typeof(RegisterScheme))
+
+                if (t == typeof(RegisterScheme))
                 {
                     _scheme = (RegisterScheme)o;
                 }
@@ -523,12 +542,13 @@ namespace Eze.IO.Application
             try
             {
                 if (string.IsNullOrEmpty(protocol))
-                    throw new ArgumentNullException(protocol.GetType().Name);
+                    throw new ArgumentNullException(nameof(protocol));
 
-                if(string.IsNullOrEmpty(name))
-                    throw new ArgumentNullException(name.GetType().Name);
+                if (string.IsNullOrEmpty(name))
+                    throw new ArgumentNullException(nameof(name));
 
                 RegistryKey key = Registry.CurrentUser;
+
                 switch (_scheme)
                 {
                     case RegisterScheme.OnCurrentUser:
@@ -541,35 +561,43 @@ namespace Eze.IO.Application
                         throw new InvalidEnumArgumentException("register", (int)_scheme, typeof(RegisterScheme));
                 }
 
-                if(key == null)
+                try
                 {
-                    string _key = key.GetValue(null).ToString();
-                    if( _key == null)
+                    if(UriParser.IsKnownScheme(protocol))
+                        return true;
+                }
+                finally { }
+
+                if(key != null)
+                {
+                    string _key = (string)key.GetValue(null);
+
+                    if(_key == null)
                     {
                         key.Dispose();
                         return false;
                     }
                     else
                     {
-                       if(_key.Replace("URL:", string.Empty).Replace("Protocol", string.Empty).Trim() == protocol)
-                       {
+                        var _r = _key.Replace("URL:", string.Empty).Replace("Protocol", string.Empty).Trim();
+                        if (_r == protocol)
+                        {
                             return true;
-                       }
+                        }
 
-                       return false;
+                        return false;
                     }
                 }
                 else
                 {
-                    key.Dispose();
                     return false;
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                if(ex is SecurityException || ex is UnauthorizedAccessException)
+                if (ex is SecurityException || ex is UnauthorizedAccessException)
                 {
-                    switch(_scheme)
+                    switch (_scheme)
                     {
                         case RegisterScheme.OnCurrentUser:
                             throw new UnauthorizedAccessException("Failed to read registry values on current user, check your permissions");
@@ -579,9 +607,18 @@ namespace Eze.IO.Application
 
                     throw new UnauthorizedAccessException("Failed to read registry values, check your permissions");
                 }
+                else if(ex is ArgumentNullException)
+                {
+                    throw ex;
+                }
+                else if (ex is InvalidEnumArgumentException)
+                {
+                    throw ex;
+                }
                 else
                 {
-                    throw new InvalidOperationException(ex.Message);
+                    throw ex;
+                    //throw new InvalidOperationException(ex.Message);
                 }
             }
         }
@@ -608,33 +645,15 @@ namespace Eze.IO.Application
         protected Boolean ThrowError { get; set; }
 
         /// <summary>
-        /// Calls static method <see cref="UriScheme.Register(string, string, int, string, string, string, int, RegisterScheme)"/>
+        /// Calls static method <see cref="UriScheme.Register(string, string, string, string, string, int, RegisterScheme)"/>
         /// </summary>
         [ComVisible(true)]
-        public virtual void Register(string protocol, string app, int port, string name, string customQueries, 
+        public virtual void Register(string protocol, string app, string name, string customQueries,
             string icon = null, int iconNumber = 0, RegisterScheme register = RegisterScheme.OnCurrentUser)
         {
             try
             {
-                UriScheme.Register(protocol, app, port, name, customQueries, icon, iconNumber, register);
-            }
-            catch(Exception ex)
-            {
-                if(this.ThrowError)
-                    throw ex;
-            }
-        }
-
-        /// <summary>
-        /// Calls static method <see cref="UriScheme.Unregister(string, int, string, RegisterScheme)"/>
-        /// </summary>
-        [ComVisible(true)]
-        public virtual void Unregister(string protocol, int port, string name, 
-            RegisterScheme register = RegisterScheme.OnCurrentUser)
-        {
-            try
-            {
-                UriScheme.Unregister(protocol, port, name, register);
+                UriScheme.Register(protocol, app, name, customQueries, icon, iconNumber, register);
             }
             catch (Exception ex)
             {
@@ -644,15 +663,15 @@ namespace Eze.IO.Application
         }
 
         /// <summary>
-        /// Calls static method <see cref="UriScheme.UpdateScheme(string, string, int, string, string, string, int, RegisterScheme)"/>
+        /// Calls static method <see cref="UriScheme.Unregister(string, string, RegisterScheme)"/>
         /// </summary>
         [ComVisible(true)]
-        public virtual void UpdateScheme(string protocol, string app, int port, string name, string customQueries,
-            string icon = null, int iconNumber = 0, RegisterScheme register = RegisterScheme.OnCurrentUser)
+        public virtual void Unregister(string protocol, string name,
+            RegisterScheme register = RegisterScheme.OnCurrentUser)
         {
             try
             {
-                UriScheme.UpdateScheme(protocol, app, port, name, customQueries, icon, iconNumber, register);
+                UriScheme.Unregister(protocol, name, register);
             }
             catch (Exception ex)
             {
@@ -662,19 +681,37 @@ namespace Eze.IO.Application
         }
 
         /// <summary>
-        /// Calls static method <see cref="UriScheme.Exist(string, int, string, RegisterScheme)"/>
+        /// Calls static method <see cref="UriScheme.UpdateScheme(string, string, string, string, string, int, RegisterScheme)"/>
         /// </summary>
         [ComVisible(true)]
-        public virtual Boolean Exist(string protocol, int port, string name,
+        public virtual void UpdateScheme(string protocol, string app, string name, string customQueries,
+            string icon = null, int iconNumber = 0, RegisterScheme register = RegisterScheme.OnCurrentUser)
+        {
+            try
+            {
+                UriScheme.UpdateScheme(protocol, app, name, customQueries, icon, iconNumber, register);
+            }
+            catch (Exception ex)
+            {
+                if (this.ThrowError)
+                    throw ex;
+            }
+        }
+
+        /// <summary>
+        /// Calls static method <see cref="UriScheme.Exist(string, string, RegisterScheme)"/>
+        /// </summary>
+        [ComVisible(true)]
+        public virtual Boolean Exist(string protocol, string name,
             RegisterScheme register = RegisterScheme.OnCurrentUser)
         {
             try
             {
-                return UriScheme.Exist(protocol, port, name, register);
+                return UriScheme.Exist(protocol, name, register);
             }
             catch (Exception ex)
             {
-                if(this.ThrowError)
+                if (this.ThrowError)
                     throw ex;
 
                 return false;
@@ -692,7 +729,7 @@ namespace Eze.IO.Application
             }
             catch (Exception ex)
             {
-                if(this.ThrowError)
+                if (this.ThrowError)
                     throw ex;
 
                 return null;
@@ -704,7 +741,7 @@ namespace Eze.IO.Application
     /// Type of registration for <see cref="UriScheme"/> class
     /// </summary>
     [ComVisible(true)]
-    public enum RegisterScheme : Byte
+    public enum RegisterScheme : byte
     {
         /// <summary> Register on the current user</summary>
         /// <exception cref="UnauthorizedAccessException">Exception thrown when the proper permissions aren't given</exception>

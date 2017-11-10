@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Eze.IO.Application
@@ -48,7 +45,7 @@ namespace Eze.IO.Application
         /// <exception cref="NullReferenceException">Exception thrown when method fails to find uri scheme</exception>
         public static void UpdateScheme(string protocol, int port, string name, RegisterScheme register = RegisterScheme.OnCurrentUser)
         {
-            if(Exist(protocol, port, name, register))
+            if(Exist(protocol, name, register))
             {
                 var find = GetUri(name, register);
                 if(find != null)
@@ -74,7 +71,6 @@ namespace Eze.IO.Application
         /// </summary>
         /// <param name="protocol">The uri scheme</param>
         /// <param name="app">The file path to application.</param>
-        /// <param name="port">The port number associated with uri scheme</param>
         /// <param name="name">The name of application handler</param>
         /// <param name="customQueries">The custom arguments to pass</param>
         /// <param name="icon">The icon associated with application</param>
@@ -86,18 +82,18 @@ namespace Eze.IO.Application
         /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="protocol"/>, <paramref name="name"/> or <paramref name="customQueries"/> parameters are null</exception>
         /// <exception cref="UnauthorizedAccessException">Exception thrown when the proper permissions aren't given</exception>
         /// <exception cref="NullReferenceException">Exception thrown when method fails to find uri scheme</exception>
-        public static void UpdateScheme(string protocol, string app, int port, string name, string customQueries, 
+        public static void UpdateScheme(string protocol, string app, string name, string customQueries, 
             string icon = null, int iconNumber = 0, RegisterScheme register = RegisterScheme.OnCurrentUser)
         {
-            if(Exist(protocol, port, name, register))
+            if(Exist(protocol, name, register))
             {
                 var find = GetUri(name, register);
                 if(find != null)
                 {
+                    if(icon == null) { icon = app; }
                     Unregister(find, name, register);
                     find.Icon = new Icon<string, int>(icon, iconNumber);
                     find.Path = app;
-                    find.Port = port;
                     find.Query = customQueries;
                     find.Scheme = protocol;
                     Register(find, name, register);
@@ -118,7 +114,6 @@ namespace Eze.IO.Application
         /// </summary>
         /// <param name="protocol">The uri scheme</param>
         /// <param name="app">The file path to application.</param>
-        /// <param name="port">The port number associated with uri scheme</param>
         /// <param name="name">The name of application handler</param>
         /// <param name="queries" > The number of arguments to pass</param>
         /// <param name="icon">The icon associated with application</param>
@@ -131,10 +126,10 @@ namespace Eze.IO.Application
         /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="protocol"/> or <paramref name="name"/> parameters are null</exception>
         /// <exception cref="UnauthorizedAccessException">Exception thrown when the proper permissions aren't given</exception>
         /// <exception cref="NullReferenceException">Exception thrown when method fails to find uri scheme</exception>
-        public static void UpdateScheme(string protocol, string app, int port, string name, int queries, string icon = null, 
+        public static void UpdateScheme(string protocol, string app, string name, int queries, string icon = null, 
             int iconNumber = 0, RegisterScheme register = RegisterScheme.OnCurrentUser)
         {
-            if (Exist(protocol, port, name, register))
+            if (Exist(protocol, name, register))
             {
                 var find = GetUri(name, register);
                 if (find != null)
@@ -142,7 +137,6 @@ namespace Eze.IO.Application
                     Unregister(find, name, register);
                     find.Icon = new Icon<string, int>(icon, iconNumber);
                     find.Path = app;
-                    find.Port = port;
                     find.Queries = queries;
                     find.Scheme = protocol;
                     Register(find, name, register);
