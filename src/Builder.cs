@@ -3,158 +3,12 @@ using System.ComponentModel;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Web;
 
 namespace Eze.IO.Application
 {
-    public static partial class UriScheme
-    {
-        /// <summary>
-        /// Update a existing uri scheme
-        /// </summary>
-        /// <param name="uri">The <see cref="CustomUriBuilder"/> to be used as a uri scheme</param>
-        /// <param name="name">The name of application handler</param>
-        /// <param name="register">The type of <see cref="RegisterScheme"/></param>
-        /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
-        /// <exception cref="InvalidOperationException">Exception thrown when invalid object is passed, scheme doesn't exist, or another method is running simultaneously</exception>
-        /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="name"/> parameters are null</exception>
-        /// <exception cref="UnauthorizedAccessException">Exception thrown when the proper permissions aren't given</exception>
-        /// <exception cref="NullReferenceException">Exception thrown when method fails to find uri scheme</exception>
-        public static void UpdateScheme(CustomUriBuilder uri, string name, RegisterScheme register = RegisterScheme.OnCurrentUser)
-        {
-            if(Exist(uri, name, register))
-            {
-                UpdateScheme(uri.Scheme, uri.Port, name, register);
-            }
-            else
-            {
-                throw new InvalidOperationException("The scheme or application name doesn't exist");
-            }
-        }
-
-        /// <summary>
-        /// Update a existing uri scheme
-        /// </summary>
-        /// <param name="protocol">The uri scheme</param>
-        /// <param name="port">The port number associated with uri scheme</param>
-        /// <param name="name">The name of application handler</param>
-        /// <param name="register">The type of <see cref="RegisterScheme"/></param>
-        /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
-        /// <exception cref="InvalidOperationException">Exception thrown when invalid object is passed, scheme doesn't exist, or another method is running simultaneously</exception>
-        /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="protocol"/> or <paramref name="name"/> parameters are null</exception>
-        /// <exception cref="UnauthorizedAccessException">Exception thrown when the proper permissions aren't given</exception>
-        /// <exception cref="NullReferenceException">Exception thrown when method fails to find uri scheme</exception>
-        public static void UpdateScheme(string protocol, int port, string name, RegisterScheme register = RegisterScheme.OnCurrentUser)
-        {
-            if(Exist(protocol, name, register))
-            {
-                var find = GetUri(name, register);
-                if(find != null)
-                {
-                    Unregister(find, name, register);
-                    find.Scheme = protocol;
-                    find.Port = port;
-                    Register(find, name, register);
-                }
-                else
-                {
-                    throw new NullReferenceException("Error failed to find uri scheme");
-                }
-            }
-            else
-            {
-                throw new InvalidOperationException("The scheme or application name doesn't exist");
-            }
-        }
-
-        /// <summary>
-        /// Update a existing uri scheme
-        /// </summary>
-        /// <param name="protocol">The uri scheme</param>
-        /// <param name="app">The file path to application.</param>
-        /// <param name="name">The name of application handler</param>
-        /// <param name="customQueries">The custom arguments to pass</param>
-        /// <param name="icon">The icon associated with application</param>
-        /// <param name="iconNumber">The icon number associated with <paramref name="icon"/></param>
-        /// <param name="register">The type of <see cref="RegisterScheme"/></param>
-        /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
-        /// <exception cref="InvalidOperationException">Exception thrown when invalid object is passed, scheme doesn't exist, or another method is running simultaneously</exception>
-        /// <exception cref="FileNotFoundException">Exception thrown when a <paramref name="app"/> or <paramref name="icon"/> file doesn't exist</exception>
-        /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="protocol"/>, <paramref name="name"/> or <paramref name="customQueries"/> parameters are null</exception>
-        /// <exception cref="UnauthorizedAccessException">Exception thrown when the proper permissions aren't given</exception>
-        /// <exception cref="NullReferenceException">Exception thrown when method fails to find uri scheme</exception>
-        public static void UpdateScheme(string protocol, string app, string name, string customQueries, 
-            string icon = null, int iconNumber = 0, RegisterScheme register = RegisterScheme.OnCurrentUser)
-        {
-            if(Exist(protocol, name, register))
-            {
-                var find = GetUri(name, register);
-                if(find != null)
-                {
-                    if(icon == null) { icon = app; }
-                    Unregister(find, name, register);
-                    find.Icon = new Icon<string, int>(icon, iconNumber);
-                    find.Path = app;
-                    find.Query = customQueries;
-                    find.Scheme = protocol;
-                    Register(find, name, register);
-                }
-                else
-                {
-                    throw new NullReferenceException("Error failed to find uri scheme");
-                }
-            }
-            else
-            {
-                throw new InvalidOperationException("The scheme or application name doesn't exist");
-            }
-        }
-
-        /// <summary>
-        /// Update a existing uri scheme
-        /// </summary>
-        /// <param name="protocol">The uri scheme</param>
-        /// <param name="app">The file path to application.</param>
-        /// <param name="name">The name of application handler</param>
-        /// <param name="queries" > The number of arguments to pass</param>
-        /// <param name="icon">The icon associated with application</param>
-        /// <param name="iconNumber">The icon number associated with <paramref name="icon"/></param>
-        /// <param name="register">The type of <see cref="RegisterScheme"/></param>
-        /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
-        /// <exception cref="InvalidOperationException">Exception thrown when invalid object is passed, scheme doesn't exist, or another method is running simultaneously</exception>
-        /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="protocol"/> or <paramref name="name"/> parameters are null</exception>
-        /// <exception cref="FileNotFoundException">Exception thrown when a <paramref name="app"/> or <paramref name="icon"/> file doesn't exist</exception>
-        /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="protocol"/> or <paramref name="name"/> parameters are null</exception>
-        /// <exception cref="UnauthorizedAccessException">Exception thrown when the proper permissions aren't given</exception>
-        /// <exception cref="NullReferenceException">Exception thrown when method fails to find uri scheme</exception>
-        public static void UpdateScheme(string protocol, string app, string name, int queries, string icon = null, 
-            int iconNumber = 0, RegisterScheme register = RegisterScheme.OnCurrentUser)
-        {
-            if (Exist(protocol, name, register))
-            {
-                var find = GetUri(name, register);
-                if (find != null)
-                {
-                    Unregister(find, name, register);
-                    find.Icon = new Icon<string, int>(icon, iconNumber);
-                    find.Path = app;
-                    find.Queries = queries;
-                    find.Scheme = protocol;
-                    Register(find, name, register);
-                }
-                else
-                {
-                    throw new NullReferenceException("Error failed to find uri scheme");
-                }
-            }
-            else
-            {
-                throw new InvalidOperationException("The scheme or application name doesn't exist");
-            }
-        }
-    }
-
     /// <summary>
-    /// Icon information, which also can be used in the <see cref="CustomUriBuilder"/> class
+    /// Icon information, which also can be used in the <see cref="UriSchemeBuilder"/> class
     /// </summary>
     [Serializable]
     public struct Icon<TFile, TNumber>
@@ -163,7 +17,7 @@ namespace Eze.IO.Application
         private Int32 _number;
 
         /// <summary>
-        /// Icon information, which also can be used in the <see cref="CustomUriBuilder"/> class
+        /// Icon information, which also can be used in the <see cref="UriSchemeBuilder"/> class
         /// </summary>
         /// <param name="file">The icon file path <para>for file extenstion: .exe, .dll, .ico and other supported image files</para></param>
         /// <param name="number">The icon index number</param>
@@ -203,24 +57,27 @@ namespace Eze.IO.Application
     /// <summary>
     /// Class for creating uri(s) which also can be used in the <see cref="UriScheme"/> class
     /// </summary>
-    public sealed class CustomUriBuilder : UriBuilder, IDisposable
+    public sealed class UriSchemeBuilder : IDisposable
     {
-        private bool _disposed = false;
-
         /// <summary>
         /// Gets or sets local path of application file
         /// </summary>
-        public new String Path { get; set; }
+        public String Path { get; set; }
 
         /// <summary>
         /// Gets or sets the number of parameter(s) or argument(s) to pass on the <seealso cref="Path"/> file
         /// </summary>
-        public Int32 Queries { get; set; }
+        public Int32 Parameters { get; set; }
 
         /// <summary>
         /// Gets or sets the string parameter(s) or argument(s) to pass on the <seealso cref="Path"/> file
         /// </summary>
-        public new String Query { get; set; }
+        public String Parameter { get; set; }
+
+        /// <summary>
+        /// Gets or sets the protocol portion of the uri scheme
+        /// </summary>
+        public String Protocol { get; set; }
 
         /// <summary>
         /// Gets or sets the icon information with <see cref="Icon{TFile, TNumber}"/>
@@ -230,73 +87,66 @@ namespace Eze.IO.Application
         /// <summary>
         /// Class for creating uri(s) which also can be used in the <see cref="UriScheme"/> class
         /// </summary>
-        public CustomUriBuilder() { }
+        public UriSchemeBuilder() { }
 
         /// <summary>
         /// Class for creating uri(s) which also can be used in the <see cref="UriScheme"/> class
         /// </summary>
-        /// <exception cref="InvalidOperationException">The <see cref="Uri"/> class can thrown this exception</exception>
-        public CustomUriBuilder(Uri uri)
+        public UriSchemeBuilder(UriBuilder uri)
         {
-            this.Path = uri.LocalPath;
-            this.Port = uri.Port;
-            this.Scheme = uri.Scheme;
-            this.Host = Uri.Host;
-            this.Query = uri.Query;
-            this.Fragment = uri.Fragment;
-            this.Path = uri.AbsolutePath;
+            this.Path = uri.Uri.LocalPath;
+            this.Protocol = uri.Scheme;
+            this.Parameter = uri.Query;
+            this.Parameters = HttpUtility.ParseQueryString(uri.Query).Keys.Count;
+            this.Icon = new Icon<string, int>(this.Path, 0);
         }
 
         /// <summary>
-        /// Release information in <seealso cref="UriBuilder.Uri"/> in this instance
+        /// Release information in <seealso cref="UriSchemeBuilder"/> in this instance
         /// </summary>
-        ~CustomUriBuilder()
+        ~UriSchemeBuilder()
         {
-            this.Dispose(false);
+            this.Dispose();
         }
 
-        internal void Dispose(bool disposing)
+        private bool _disposed = false;
+
+        private void Dispose(bool disposing)
         {
             if (!_disposed)
             {
-                if (disposing)
+                try
                 {
-                    foreach(PropertyInfo pi in this.GetType().GetProperties())
+                    if (disposing)
                     {
-                        if(pi.PropertyType == typeof(String))
+                        foreach (PropertyInfo pi in this.GetType().GetProperties())
                         {
-                            pi.SetValue(this, null);
+                            if (pi.PropertyType == typeof(String))
+                            {
+                                pi.SetValue(this, null);
+                            }
+                            else if (pi.PropertyType == typeof(Int32))
+                            {
+                                pi.SetValue(this, 0);
+                            }
+                            else if (pi.PropertyType == typeof(Icon<string, int>))
+                            {
+                                pi.SetValue(this, new Icon<string, int>(null, 0));
+                            }
                         }
-                        else if(pi.PropertyType == typeof(Int32))
-                        {
-                            pi.SetValue(this, 0);
-                        }
+                        _disposed = true;
                     }
-
-                    foreach (PropertyInfo pi in this.GetType().GetProperties())
-                    {
-                        if(pi.PropertyType == typeof(String))
-                        {
-                            var _get = (string)pi.GetValue(this);
-                            if(!string.IsNullOrEmpty(_get))
-                                _disposed = false;
-                        }
-                        else if (pi.PropertyType == typeof(Int32))
-                        {
-                            var _get = (int)pi.GetValue(this);
-                            if(_get != 0)
-                                _disposed = false;
-                        }
-                    }
-
-                    _disposed = true;
                 }
+                catch { /* ignore */ }
             }
+            else
+                throw new ObjectDisposedException(this.GetType().Name);
         }
 
         /// <summary>
         /// Dispose
         /// </summary>
+        /// <exception cref="ObjectDisposedException">Exception thrown when this object has been disposed</exception>
         public void Dispose()
         {
             this.Dispose(true);
