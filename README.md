@@ -1,8 +1,8 @@
-# Eze-IO UriScheme Register
-##Un/Register uri schemes in Windows, with COM support 
-##Add library to project then put 'using Eze.IO.Application;'
+# UriScheme Register
+**Un/Register uri schemes in Windows, with COM support**
+**Add library to project then put 'using Eze.IO.Application;'**
 
-##Example
+### Example
 ``` c#
 [STAThread]
 static int Main(string[] args)
