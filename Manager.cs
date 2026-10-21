@@ -36,10 +36,10 @@ namespace Eze.IO.Application
             {
                 UriScheme.RegisterScheme(protocol, app, name, customQueries, icon, iconNumber, register);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 if (this.ThrowError)
-                    throw ex;
+                    throw;
             }
         }
 
@@ -54,10 +54,10 @@ namespace Eze.IO.Application
             {
                 UriScheme.UnregisterScheme(protocol, name, register);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 if (this.ThrowError)
-                    throw ex;
+                    throw;
             }
         }
 
@@ -72,10 +72,10 @@ namespace Eze.IO.Application
             {
                 UriScheme.UpdateScheme(protocol, app, name, customQueries, icon, iconNumber, register);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 if (this.ThrowError)
-                    throw ex;
+                    throw;
             }
         }
 
@@ -90,10 +90,10 @@ namespace Eze.IO.Application
             {
                 return UriScheme.DoesItExist(protocol, name, register);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 if (this.ThrowError)
-                    throw ex;
+                    throw;
 
                 return false;
             }

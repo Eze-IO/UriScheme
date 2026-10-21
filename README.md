@@ -7,7 +7,9 @@
 [STAThread]
 static int Main(string[] args)
 {
-  UriScheme.Register("test://", "C:/Test/myapp.exe", "Test", "C:/Test/myapp.exe", 0, RecordScheme.OnMachine);
+  UriScheme.RegisterScheme("test://", "C:/Test/myapp.exe", "Test", "C:/Test/myapp.exe", 0, RecordScheme.OnMachine);
   return 0;
 }
 ```
+
+This writes `Software\Classes\test` (under HKCU or HKLM), so opening `test://anything` launches `"C:/Test/myapp.exe" "%1"`. The `name` argument ("Test") is the display name stored as `URL:Test Protocol`. Registering with `RecordScheme.OnMachine` needs administrator rights.

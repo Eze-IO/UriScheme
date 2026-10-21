@@ -17,7 +17,7 @@ namespace Eze.IO.Application
         /// Register a new uri scheme
         /// </summary>
         /// <param name="uri">The <see cref="UriSchemeBuilder"/> to be used as a uri scheme</param>
-        /// <param name="name">The name of application handler</param>
+        /// <param name="name">The display name of the application handler, stored as "URL:name Protocol"</param>
         /// <param name="register">The type of <see cref="RecordScheme"/></param>
         /// <exception cref="FormatException">Exception thrown when <see cref="UriSchemeBuilder.Protocol"/> has invalid character(s), or spaces</exception>
         /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
@@ -45,7 +45,7 @@ namespace Eze.IO.Application
         ///     [STAThread]
         ///     static int Main(string[] args)
         ///     {
-        ///         UriScheme.Register("test://", "C:/Test/myapp.exe", "Test", "C:/Test/myapp.exe", 0, RecordScheme.OnMachine);
+        ///         UriScheme.RegisterScheme("test://", "C:/Test/myapp.exe", "Test", "C:/Test/myapp.exe", 0, RecordScheme.OnMachine);
         ///         return 0;
         ///     }
         /// }
@@ -53,7 +53,7 @@ namespace Eze.IO.Application
         /// </example>
         /// <param name="protocol">The uri scheme</param>
         /// <param name="path">The file path to application.</param>
-        /// <param name="name">The name of application handler</param>
+        /// <param name="name">The display name of the application handler, stored as "URL:name Protocol"</param>
         /// <param name="icon">The icon associated with application</param>
         /// <param name="iconNumber">The icon number associated with <paramref name="icon"/></param>
         /// <param name="register">The type of <see cref="RecordScheme"/></param>
@@ -74,7 +74,7 @@ namespace Eze.IO.Application
         /// </summary>
         /// <param name="protocol">The uri scheme</param>
         /// <param name="path">The file path to application.</param>
-        /// <param name="name">The name of application handler</param>
+        /// <param name="name">The display name of the application handler, stored as "URL:name Protocol"</param>
         /// <param name="parameters">The number of arguments to pass</param>
         /// <param name="icon">The icon associated with application</param>
         /// <param name="iconNumber">The icon number associated with <paramref name="icon"/></param>
@@ -96,7 +96,7 @@ namespace Eze.IO.Application
         /// </summary>
         /// <param name="protocol">The uri scheme</param>
         /// <param name="path">The file path to application.</param>
-        /// <param name="name">The name of application handler</param>
+        /// <param name="name">The display name of the application handler, stored as "URL:name Protocol"</param>
         /// <param name="parameter">The custom arguments to pass</param>
         /// <param name="icon">The icon associated with application</param>
         /// <param name="iconNumber">The icon number associated with <paramref name="icon"/></param>
@@ -129,7 +129,6 @@ namespace Eze.IO.Application
             using (UriSchemeBuilder build = new UriSchemeBuilder())
             {
                 StringBuilder args = new StringBuilder();
-                RegistryKey key = Registry.LocalMachine;
                 RecordScheme _scheme = RecordScheme.OnCurrentUser;
                 String _custom = null;
                 Int32 _argstoPass = 1;
@@ -185,32 +184,8 @@ namespace Eze.IO.Application
 
                     build.Protocol = protocol;
 
-                    switch (_scheme)
-                    {
-                        case RecordScheme.OnCurrentUser:
-                            key = Registry.CurrentUser.OpenSubKey(@"Software\Classes\" + name);
-                            break;
-                        case RecordScheme.OnMachine:
-                            key = Registry.LocalMachine.OpenSubKey(@"Software\Classes\" + name);
-                            break;
-                        default:
-                            throw new InvalidEnumArgumentException("register", (int)_scheme, typeof(RecordScheme));
-                    }
-
-                    if (key == null)
-                    {
-                        switch (_scheme)
-                        {
-                            case RecordScheme.OnCurrentUser:
-                                key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + name);
-                                break;
-                            case RecordScheme.OnMachine:
-                                key = Registry.LocalMachine.CreateSubKey(@"Software\Classes\" + name);
-                                break;
-                            default:
-                                throw new InvalidEnumArgumentException("register", (int)_scheme, typeof(RecordScheme));
-                        }
-                    }
+                    // Validate everything before touching the registry so a failed call leaves nothing behind
+                    RegistryKey root = GetRoot(_scheme);
 
                     if (UriParser.IsKnownScheme(build.Protocol))
                         throw new ApplicationException("This scheme is already registered");
@@ -223,25 +198,51 @@ namespace Eze.IO.Application
                             throw new FileNotFoundException(string.Format("Couldn't locate file '{0}'",
                                 icon));
 
-                    key.SetValue(string.Empty, string.Format("URL:{0} Protocol", build.Protocol));
-                    key.SetValue("URL Protocol", string.Empty);
-                    if (!string.IsNullOrEmpty(icon))
+                    // Windows resolves a uri scheme by the key name, so the key must be the protocol itself
+                    string keyPath = GetClassesPath(protocol);
+                    bool existed;
+                    using (RegistryKey _existing = root.OpenSubKey(keyPath))
+                        existed = _existing != null;
+
+                    try
                     {
-                        var _key = key.CreateSubKey(@"DefaultIcon");
-                        _key.SetValue(string.Empty, string.Format("{0},{1}",
-                            icon, iconNumber));
+                        // CreateSubKey opens the key for writing, even when it already exists
+                        using (RegistryKey key = root.CreateSubKey(keyPath))
+                        {
+                            key.SetValue(string.Empty, string.Format("URL:{0} Protocol", name));
+                            key.SetValue("URL Protocol", string.Empty);
+                            if (!string.IsNullOrEmpty(icon))
+                            {
+                                using (RegistryKey _key = key.CreateSubKey(@"DefaultIcon"))
+                                {
+                                    _key.SetValue(string.Empty, string.Format("{0},{1}",
+                                        icon, iconNumber));
+                                }
+                            }
+                            using (RegistryKey _key = key.CreateSubKey(@"shell\open\command"))
+                            {
+                                // Quote the path so paths containing spaces are launched correctly
+                                _key.SetValue(string.Empty, string.Format(@"""{0}""{1}", path, args));
+                            }
+                        }
                     }
-                    key = key.CreateSubKey(@"shell\open\command");
-                    key.SetValue(string.Empty, path + args.ToString());
-                    key.Close();
-                    key.Dispose();
+                    catch
+                    {
+                        // Only clean up a key this call created, never one that was already there
+                        if (!existed)
+                        {
+                            try { root.DeleteSubKeyTree(keyPath, false); }
+                            catch { /* ignore, report the original error */ }
+                        }
+                        throw;
+                    }
                 }
                 catch (Exception ex)
                 {
                     if (ex is ObjectDisposedException)
                     {
                         throw new InvalidOperationException("Error while writting to registry",
-                             new InvalidOperationException(string.Format("A method in '{0}' class may have be running simultaneously", typeof(UriScheme).Name, ex)));
+                             new InvalidOperationException(string.Format("A method in '{0}' class may have be running simultaneously", typeof(UriScheme).Name), ex));
                     }
                     else if (ex is SecurityException || ex is UnauthorizedAccessException)
                     {
@@ -256,9 +257,51 @@ namespace Eze.IO.Application
                         throw new UnauthorizedAccessException("Failed to write registry values, check your permissions");
                     }
 
-                    throw ex;
+                    throw;
                 }
             };
+        }
+
+        private static RegistryKey GetRoot(RecordScheme scheme)
+        {
+            switch (scheme)
+            {
+                case RecordScheme.OnCurrentUser:
+                    return Registry.CurrentUser;
+                case RecordScheme.OnMachine:
+                    return Registry.LocalMachine;
+                default:
+                    throw new InvalidEnumArgumentException("register", (int)scheme, typeof(RecordScheme));
+            }
+        }
+
+        private static String GetClassesPath(string protocol)
+        {
+            return @"Software\Classes\" + FindSchemeText(protocol);
+        }
+
+        private static void ReplaceUri(UriSchemeBuilder find, string name, RecordScheme register,
+            Action<UriSchemeBuilder> update)
+        {
+            // Keep a copy of the current registration so it can be restored if registering the new one fails
+            var old = GetUri(find.Protocol, register);
+
+            UnregisterScheme(find, name, register);
+            update(find);
+
+            try
+            {
+                RegisterScheme(find, name, register);
+            }
+            catch
+            {
+                if (old != null)
+                {
+                    try { RegisterScheme(old, name, register); }
+                    catch { /* ignore, report the original error */ }
+                }
+                throw;
+            }
         }
 
         private static String FindSchemeText(string protocol)
@@ -273,12 +316,11 @@ namespace Eze.IO.Application
             catch { return protocol; }
         }
 
-        private static UriSchemeBuilder GetUri(string name, params object[] objects)
+        private static UriSchemeBuilder GetUri(string protocol, params object[] objects)
         {
             try
             {
                 UriSchemeBuilder _result = new UriSchemeBuilder();
-                RegistryKey key = Registry.LocalMachine;
                 RecordScheme _scheme = RecordScheme.OnCurrentUser;
 
                 foreach (var o in objects)
@@ -295,85 +337,71 @@ namespace Eze.IO.Application
                     }
                 }
 
-                switch (_scheme)
+                using (RegistryKey key = GetRoot(_scheme).OpenSubKey(GetClassesPath(protocol)))
                 {
-                    case RecordScheme.OnCurrentUser:
-                        key = Registry.CurrentUser.OpenSubKey(@"Software\Classes\" + name);
-                        break;
-                    case RecordScheme.OnMachine:
-                        key = Registry.LocalMachine.OpenSubKey(@"Software\Classes\" + name);
-                        break;
-                    default:
-                        throw new InvalidEnumArgumentException("register", (int)_scheme, typeof(RecordScheme));
-                }
+                    if (key == null)
+                        return null;
 
-                if(key == null)
-                {
-                    key.Dispose();
-                    throw new SecurityException();
-                }
+                    _result.Protocol = FindSchemeText(protocol);
 
-                var _protocol = (string)key.GetValue(null);
-
-                if (_protocol != null)
-                {
-                    _result.Protocol = _protocol.Replace("URL:", string.Empty).Replace("Protocol", string.Empty).Trim();
-                }
-
-                var _key = key.OpenSubKey(@"DefaultIcon");
-
-                if (_key != null)
-                {
-                    int n = 0;
-                    string _file = string.Empty;
-                    var icon = (string)_key.GetValue(null);
-
-                    if (icon != null)
+                    using (RegistryKey _key = key.OpenSubKey(@"DefaultIcon"))
                     {
-                        foreach (var i in icon.Split(','))
+                        var icon = _key == null ? null : _key.GetValue(null) as string;
+
+                        if (!string.IsNullOrEmpty(icon))
                         {
-                            if (Int32.TryParse(i, out int num))
+                            // The icon index follows the last comma, e.g. "C:\app.exe,0"
+                            int n = 0;
+                            string _file = icon;
+                            int comma = icon.LastIndexOf(',');
+
+                            if (comma >= 0 && Int32.TryParse(icon.Substring(comma + 1), out int num))
                             {
                                 n = num;
+                                _file = icon.Substring(0, comma);
+                            }
+
+                            _result.Icon = new Icon<string, int>(_file, n);
+                        }
+                    }
+
+                    using (RegistryKey _key = key.OpenSubKey(@"shell\open\command"))
+                    {
+                        var command = _key == null ? null : _key.GetValue(null) as string;
+
+                        if (!string.IsNullOrEmpty(command))
+                        {
+                            // The command is either "C:\path\app.exe" args or C:\path\app.exe args
+                            command = command.Trim();
+                            string _args;
+
+                            if (command.StartsWith("\""))
+                            {
+                                int end = command.IndexOf('"', 1);
+                                if (end < 0) end = command.Length;
+                                _result.Path = command.Substring(1, Math.Max(0, end - 1));
+                                _args = end < command.Length ? command.Substring(end + 1).Trim() : string.Empty;
                             }
                             else
                             {
-                                _file = i;
+                                int space = command.IndexOf(' ');
+                                _result.Path = space < 0 ? command : command.Substring(0, space);
+                                _args = space < 0 ? string.Empty : command.Substring(space + 1).Trim();
+                            }
+
+                            // Arguments made only of "%1" "%2"... came from a parameter count, anything else is custom
+                            var placeholders = Regex.Matches(_args, @"""?%[0-9]+""?");
+                            if (Regex.IsMatch(_args, @"^(\s*""?%[0-9]+""?)*\s*$"))
+                            {
+                                _result.Parameters = placeholders.Count;
+                            }
+                            else
+                            {
+                                _result.Parameter = _args;
                             }
                         }
                     }
-
-                    _result.Icon = new Icon<string, int>(_file, n);
                 }
-                key = key.OpenSubKey(@"shell\open\command");
-
-                if (key == null)
-                {
-                    var _query = 0;
-                    var _key2 = (string)key.GetValue(null);
-                    var _app = Regex.Match(_key2, @"^(?:[a-zA-Z]\:|\\\\[\w\.]+\\[\w.$]+)\\(?:[\w]+\\)*\w([\w.])+$", RegexOptions.None);
-
-                    if (_app.Success)
-                    {
-                        if (!string.IsNullOrEmpty(_app.Value))
-                            _result.Path = _app.Value;
-
-                        var q = Regex.Match(_key2.Replace(_app.Value, string.Empty).Trim(), "^%[0-9]+$");
-
-                        if (q.Success)
-                        {
-                            _query = q.Groups.Count;
-                        }
-                        else
-                        {
-                            _result.Parameter = q.Value;
-                        }
-                    }
-
-                    _result.Parameters = _query;
-                }
-
-                key.Dispose();
 
                 return _result;
             }
@@ -387,7 +415,7 @@ namespace Eze.IO.Application
         /// Unregister a uri scheme
         /// </summary>
         /// <param name="uri">The <see cref="UriSchemeBuilder"/> to be used as a uri scheme</param>
-        /// <param name="name">The name of application handler</param>
+        /// <param name="name">The name of application handler (not used for lookup, the scheme is found by its protocol)</param>
         /// <param name="register">The type of <see cref="RecordScheme"/></param>
         /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
         /// <exception cref="InvalidOperationException">Exception thrown when invalid object is passed, scheme doesn't exist, or another method is running simultaneously</exception>
@@ -402,7 +430,7 @@ namespace Eze.IO.Application
         /// Unregister a uri scheme
         /// </summary>
         /// <param name="protocol">The uri scheme</param>
-        /// <param name="name">The name of application handler</param>
+        /// <param name="name">The name of application handler (not used for lookup, the scheme is found by its protocol)</param>
         /// <param name="register">The type of <see cref="RecordScheme"/></param>
         /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
         /// <exception cref="InvalidOperationException">Exception thrown when invalid object is passed, scheme doesn't exist, or another method is running simultaneously</exception>
@@ -443,18 +471,7 @@ namespace Eze.IO.Application
 
             try
             {
-                RegistryKey key = Registry.CurrentConfig;
-                switch (_scheme)
-                {
-                    case RecordScheme.OnCurrentUser:
-                        Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\" + name);
-                        break;
-                    case RecordScheme.OnMachine:
-                        Registry.LocalMachine.DeleteSubKeyTree(@"Software\Classes\" + name);
-                        break;
-                    default:
-                        throw new InvalidEnumArgumentException("register", (int)_scheme, typeof(RecordScheme));
-                }
+                GetRoot(_scheme).DeleteSubKeyTree(GetClassesPath(protocol));
             }
             catch (Exception ex)
             {
@@ -472,19 +489,19 @@ namespace Eze.IO.Application
                 }
                 else if (ex is ArgumentNullException)
                 {
-                    throw ex;
+                    throw;
                 }
                 else if (ex is InvalidEnumArgumentException)
                 {
-                    throw ex;
+                    throw;
                 }
                 else if (ex is ObjectDisposedException)
                 {
                     throw new InvalidOperationException("Error while deleting entries in the registry",
-                            new InvalidOperationException(string.Format("A method in '{0}' class may have be running simultaneously", typeof(UriScheme).Name, ex)));
+                            new InvalidOperationException(string.Format("A method in '{0}' class may have be running simultaneously", typeof(UriScheme).Name), ex));
                 }
 
-                throw ex;
+                throw;
             }
         }
 
@@ -492,7 +509,7 @@ namespace Eze.IO.Application
         /// Determines if uri scheme already exist
         /// </summary>
         /// <param name="uri">The <see cref="UriSchemeBuilder"/> to be used as a uri scheme</param>
-        /// <param name="name">The name of application handler</param>
+        /// <param name="name">The name of application handler (not used for lookup, the scheme is found by its protocol)</param>
         /// <param name="register">The type of <see cref="RecordScheme"/></param>
         /// <returns>Returns true if the uri scheme exist</returns>
         /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
@@ -509,7 +526,7 @@ namespace Eze.IO.Application
         /// Determines if uri scheme already exist
         /// </summary>
         /// <param name="protocol">The uri scheme</param>
-        /// <param name="name">The name of application handler</param>
+        /// <param name="name">The name of application handler (not used for lookup, the scheme is found by its protocol)</param>
         /// <param name="register">The type of <see cref="RecordScheme"/></param>
         /// <returns>Returns true if the uri scheme exist</returns>
         /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
@@ -545,53 +562,11 @@ namespace Eze.IO.Application
                 if (string.IsNullOrEmpty(name))
                     throw new ArgumentNullException(nameof(name));
 
-                RegistryKey key = Registry.CurrentUser;
-
-                switch (_scheme)
+                // A key is a uri scheme only when it has the "URL Protocol" value, which also keeps
+                // Unregister from deleting an unrelated class key (such as a file type) with the same name
+                using (RegistryKey key = GetRoot(_scheme).OpenSubKey(GetClassesPath(protocol)))
                 {
-                    case RecordScheme.OnCurrentUser:
-                        key = Registry.CurrentUser.OpenSubKey(@"Software\Classes\" + name);
-                        break;
-                    case RecordScheme.OnMachine:
-                        key = Registry.LocalMachine.OpenSubKey(@"Software\Classes\" + name);
-                        break;
-                    default:
-                        throw new InvalidEnumArgumentException("register", (int)_scheme, typeof(RecordScheme));
-                }
-
-                try
-                {
-                    if(UriParser.IsKnownScheme(protocol))
-                        return true;
-                }
-                catch { /* ignore */}
-                finally { }
-
-                protocol = FindSchemeText(protocol);
-
-                if (key != null)
-                {
-                    string _key = (string)key.GetValue(null);
-
-                    if(_key == null)
-                    {
-                        key.Dispose();
-                        return false;
-                    }
-                    else
-                    {
-                        var _r = _key.Replace("URL:", string.Empty).Replace("Protocol", string.Empty).Trim();
-                        if (_r == protocol)
-                        {
-                            return true;
-                        }
-
-                        return false;
-                    }
-                }
-                else
-                {
-                    return false;
+                    return key != null && key.GetValue("URL Protocol") != null;
                 }
             }
             catch (Exception ex)
@@ -610,15 +585,15 @@ namespace Eze.IO.Application
                 }
                 else if(ex is ArgumentNullException)
                 {
-                    throw ex;
+                    throw;
                 }
                 else if (ex is InvalidEnumArgumentException)
                 {
-                    throw ex;
+                    throw;
                 }
                 else
                 {
-                    throw new InvalidOperationException(ex.Message);
+                    throw new InvalidOperationException(ex.Message, ex);
                 }
             }
         }
@@ -627,7 +602,7 @@ namespace Eze.IO.Application
         /// Update a existing uri scheme
         /// </summary>
         /// <param name="uri">The <see cref="UriSchemeBuilder"/> to be used as a uri scheme</param>
-        /// <param name="name">The name of application handler</param>
+        /// <param name="name">The display name of the application handler, stored as "URL:name Protocol"</param>
         /// <param name="register">The type of <see cref="RecordScheme"/></param>
         /// <exception cref="InvalidEnumArgumentException">Exception thrown when the <paramref name="register"/> parameter has a invalid value</exception>
         /// <exception cref="InvalidOperationException">Exception thrown when invalid object is passed, scheme doesn't exist, or another method is running simultaneously</exception>
@@ -639,9 +614,9 @@ namespace Eze.IO.Application
             if (DoesItExist(uri, name, register))
             {
                 if(String.IsNullOrEmpty(uri.Parameter))
-                    UpdateScheme(uri.Protocol, uri.Path, name, uri.Path, uri.Icon.File, uri.Icon.Number, register);
+                    UpdateScheme(uri.Protocol, uri.Path, name, uri.Parameters, uri.Icon.File, uri.Icon.Number, register);
                 else
-                    UpdateScheme(uri.Protocol, uri.Path, name, uri.Path, uri.Icon.File, uri.Icon.Number, register);
+                    UpdateScheme(uri.Protocol, uri.Path, name, uri.Parameter, uri.Icon.File, uri.Icon.Number, register);
             }
             else
             {
@@ -655,7 +630,7 @@ namespace Eze.IO.Application
         /// </summary>
         /// <param name="protocol">The uri scheme</param>
         /// <param name="path">The file path to application.</param>
-        /// <param name="name">The name of application handler</param>
+        /// <param name="name">The display name of the application handler, stored as "URL:name Protocol"</param>
         /// <param name="parameter">The custom arguments to pass</param>
         /// <param name="icon">The icon associated with application</param>
         /// <param name="iconNumber">The icon number associated with <paramref name="icon"/></param>
@@ -671,16 +646,17 @@ namespace Eze.IO.Application
         {
             if (DoesItExist(protocol, name, register))
             {
-                var find = GetUri(name, register);
+                var find = GetUri(protocol, register);
                 if (find != null)
                 {
                     if (icon == null) { icon = path; }
-                    UnregisterScheme(find, name, register);
-                    find.Icon = new Icon<string, int>(icon, iconNumber);
-                    find.Path = path;
-                    find.Parameter = parameter;
-                    find.Protocol = protocol;
-                    RegisterScheme(find, name, register);
+                    ReplaceUri(find, name, register, (u) =>
+                    {
+                        u.Icon = new Icon<string, int>(icon, iconNumber);
+                        u.Path = path;
+                        u.Parameter = parameter;
+                        u.Protocol = protocol;
+                    });
                 }
                 else
                 {
@@ -698,7 +674,7 @@ namespace Eze.IO.Application
         /// </summary>
         /// <param name="protocol">The uri scheme</param>
         /// <param name="path">The file path to application.</param>
-        /// <param name="name">The name of application handler</param>
+        /// <param name="name">The display name of the application handler, stored as "URL:name Protocol"</param>
         /// <param name="parameters" > The number of arguments to pass</param>
         /// <param name="icon">The icon associated with application</param>
         /// <param name="iconNumber">The icon number associated with <paramref name="icon"/></param>
@@ -715,15 +691,17 @@ namespace Eze.IO.Application
         {
             if (DoesItExist(protocol, name, register))
             {
-                var find = GetUri(name, register);
+                var find = GetUri(protocol, register);
                 if (find != null)
                 {
-                    UnregisterScheme(find, name, register);
-                    find.Icon = new Icon<string, int>(icon, iconNumber);
-                    find.Path = path;
-                    find.Parameters = parameters;
-                    find.Protocol = protocol;
-                    RegisterScheme(find, name, register);
+                    ReplaceUri(find, name, register, (u) =>
+                    {
+                        u.Icon = new Icon<string, int>(icon, iconNumber);
+                        u.Path = path;
+                        u.Parameter = null;
+                        u.Parameters = parameters;
+                        u.Protocol = protocol;
+                    });
                 }
                 else
                 {
