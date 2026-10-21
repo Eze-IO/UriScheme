@@ -1,9 +1,5 @@
 ﻿using System;
-using System.ComponentModel;
-using System.IO;
-using System.Reflection;
 using System.Text;
-using System.Web;
 
 namespace Eze.IO.Application
 {
@@ -66,8 +62,10 @@ namespace Eze.IO.Application
 
         /// <summary>
         /// Gets or sets the number of parameter(s) or argument(s) to pass on the <seealso cref="Path"/> file
+        /// <para>Set to 1 by default, which passes the uri as "%1"</para>
         /// </summary>
-        public Int32 Parameters { get; set; }
+        [Obsolete("Windows only passes the uri to the application as \"%1\", so a parameter count has no effect. Leave it at 1, or use Parameter for custom arguments.")]
+        public Int32 Parameters { get; set; } = 1;
 
         /// <summary>
         /// Gets or sets the string parameter(s) or argument(s) to pass on the <seealso cref="Path"/> file
@@ -97,60 +95,13 @@ namespace Eze.IO.Application
             this.Path = uri.Uri.LocalPath;
             this.Protocol = uri.Scheme;
             this.Parameter = uri.Query;
-            this.Parameters = HttpUtility.ParseQueryString(uri.Query).Keys.Count;
             this.Icon = new Icon<string, int>(this.Path, 0);
         }
 
         /// <summary>
-        /// Release information in <seealso cref="UriSchemeBuilder"/> in this instance
+        /// Does nothing, this class holds no resources
+        /// <para>Kept so existing <c>using</c> blocks keep compiling</para>
         /// </summary>
-        ~UriSchemeBuilder()
-        {
-            this.Dispose();
-        }
-
-        private bool _disposed = false;
-
-        private void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                try
-                {
-                    if (disposing)
-                    {
-                        foreach (PropertyInfo pi in this.GetType().GetProperties())
-                        {
-                            if (pi.PropertyType == typeof(String))
-                            {
-                                pi.SetValue(this, null);
-                            }
-                            else if (pi.PropertyType == typeof(Int32))
-                            {
-                                pi.SetValue(this, 0);
-                            }
-                            else if (pi.PropertyType == typeof(Icon<string, int>))
-                            {
-                                pi.SetValue(this, new Icon<string, int>(null, 0));
-                            }
-                        }
-                        _disposed = true;
-                    }
-                }
-                catch { /* ignore */ }
-            }
-            else
-                throw new ObjectDisposedException(this.GetType().Name);
-        }
-
-        /// <summary>
-        /// Dispose
-        /// </summary>
-        /// <exception cref="ObjectDisposedException">Exception thrown when this object has been disposed</exception>
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+        public void Dispose() { }
     }
 }

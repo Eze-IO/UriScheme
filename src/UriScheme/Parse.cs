@@ -32,14 +32,15 @@ namespace Eze.IO.Application
         /// <exception cref="ArgumentNullException">Exception thrown when the <paramref name="args"/> is null</exception>
         public static UriBuilder[] GetUriBuilders(String[] args)
         {
+            if (args == null)
+                throw new ArgumentNullException(nameof(args));
+
             List<UriBuilder> list = new List<UriBuilder>();
             foreach (String arg in args)
             {
-                try
-                {
-                    list.Add(new UriBuilder(new Uri(arg)));
-                }
-                catch { /* skip */}
+                // Arguments that aren't absolute uris are skipped
+                if (!string.IsNullOrEmpty(arg) && Uri.TryCreate(arg, UriKind.Absolute, out Uri uri))
+                    list.Add(new UriBuilder(uri));
             }
             return list.ToArray();
         }
@@ -68,11 +69,7 @@ namespace Eze.IO.Application
         {
             if(string.IsNullOrEmpty(arg))
                 throw new ArgumentNullException(nameof(arg));
-            try
-            {
-                return new UriBuilder(new Uri(arg));
-            }
-            catch { return null;  }
+            return Uri.TryCreate(arg, UriKind.Absolute, out Uri uri) ? new UriBuilder(uri) : null;
         }
     }
 }
