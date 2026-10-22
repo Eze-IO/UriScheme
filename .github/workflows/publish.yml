@@ -1,7 +1,7 @@
 name: publish
 
 # Publishes to NuGet.org when a version tag such as v1.1.0 is pushed.
-# Needs a NUGET_API_KEY repository secret with push rights for Eze.IO.UriScheme.
+# Needs a NUGET_API_KEY repository secret with push rights for EzeIO.UriScheme.
 on:
   push:
     tags: ['v*.*.*']
