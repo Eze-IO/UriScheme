@@ -1,7 +1,7 @@
 name: publish
 
 # Publishes to NuGet.org when a version tag such as v1.1.0 is pushed.
-# Needs a NUGET_API_KEY repository secret with push rights for Eze.IO.UriScheme.
+# Needs a NUGET_API_KEY repository secret with push rights for EzeIO.UriScheme.
 on:
   push:
     tags: ['v*.*.*']
@@ -34,9 +34,11 @@ jobs:
       - name: Push to NuGet.org
         shell: bash
         # Let bash expand the path, dotnet nuget push doesn't match "artifacts/*.nupkg" on Windows
+        # No --skip-duplicate: NuGet answers 409 Conflict for other problems too (such as an ID that
+        # isn't available), and that option hides the message and marks the run as passed
         run: |
           for package in artifacts/*.nupkg; do
-            dotnet nuget push "$package" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+            dotnet nuget push "$package" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json
           done
 
       - uses: actions/upload-artifact@v4
