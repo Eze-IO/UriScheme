@@ -1,6 +1,6 @@
 # UriScheme
 
-[![NuGet](https://img.shields.io/nuget/v/EzeIO.UriScheme.svg)](https://www.nuget.org/packages/EzeIO.UriScheme) [![build](https://github.com/Eze-IO/UriScheme/actions/workflows/build.yml/badge.svg)](https://github.com/Eze-IO/UriScheme/actions/workflows/build.yml)
+[![NuGet](https://img.shields.io/nuget/v/Eze.IO.UriScheme.svg)](https://www.nuget.org/packages/Eze.IO.UriScheme) [![build](https://github.com/Eze-IO/UriScheme/actions/workflows/build.yml/badge.svg)](https://github.com/Eze-IO/UriScheme/actions/workflows/build.yml)
 
 **Register, update and unregister custom uri schemes (protocol handlers) in Windows, with COM support.**
 
@@ -13,7 +13,7 @@ Targets .NET Framework 4.6.2+ and .NET 8 (`net8.0-windows`).
 Install the package, then use the namespace:
 
 ```
-dotnet add package EzeIO.UriScheme
+dotnet add package Eze.IO.UriScheme
 ```
 
 ```c#
