@@ -18,6 +18,7 @@
 
     <PackageId>Eze.IO.UriScheme</PackageId>
     <PackageTags>uri;scheme;protocol;url-protocol;registry;windows</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/Eze-IO/UriScheme</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

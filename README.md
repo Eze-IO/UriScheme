@@ -1,6 +1,6 @@
 # UriScheme
 
-[![build](https://github.com/Eze-IO/UriScheme/actions/workflows/build.yml/badge.svg)](https://github.com/Eze-IO/UriScheme/actions/workflows/build.yml)
+[![NuGet](https://img.shields.io/nuget/v/Eze.IO.UriScheme.svg)](https://www.nuget.org/packages/Eze.IO.UriScheme) [![build](https://github.com/Eze-IO/UriScheme/actions/workflows/build.yml/badge.svg)](https://github.com/Eze-IO/UriScheme/actions/workflows/build.yml)
 
 **Register, update and unregister custom uri schemes (protocol handlers) in Windows, with COM support.**
 
@@ -10,7 +10,11 @@ Targets .NET Framework 4.6.2+ and .NET 8 (`net8.0-windows`).
 
 ## Usage
 
-Add the library to your project, then:
+Install the package, then use the namespace:
+
+```
+dotnet add package Eze.IO.UriScheme
+```
 
 ```c#
 using Eze.IO.Application;
@@ -103,3 +107,7 @@ dotnet test UriScheme.sln
 ```
 
 The tests register temporary schemes under `HKEY_CURRENT_USER` and remove them afterwards, so they run on Windows only.
+
+## License
+
+[MIT](LICENSE)
