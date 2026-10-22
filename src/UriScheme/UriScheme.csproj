@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net462;net8.0-windows</TargetFrameworks>
+    <RootNamespace>Eze.IO.Application</RootNamespace>
+    <AssemblyName>UriScheme</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- ComVisible and the type library Guid stay in Properties/AssemblyInfo.cs -->
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+
+    <Version>1.1.0</Version>
+    <Authors>Eze-IO</Authors>
+    <Company>Eze-IO</Company>
+    <Product>UriScheme</Product>
+    <Copyright>Copyright © 2018 Eze-IO</Copyright>
+    <Description>Register, update and unregister custom uri schemes (protocol handlers) in the Windows registry, with COM support.</Description>
+
+    <PackageId>Eze.IO.UriScheme</PackageId>
+    <PackageTags>uri;scheme;protocol;url-protocol;registry;windows</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/Eze-IO/UriScheme</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/Eze-IO/UriScheme</PackageProjectUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="UriScheme.Tests" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+    <!-- Lets the .NET Framework target build without a Framework targeting pack installed -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>
