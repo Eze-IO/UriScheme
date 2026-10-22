@@ -13,7 +13,7 @@
     <Authors>Eze-IO</Authors>
     <Company>Eze-IO</Company>
     <Product>UriScheme</Product>
-    <Copyright>Copyright © 2018 Eze-IO</Copyright>
+    <Copyright>Copyright © 2018-2026 Eze-IO</Copyright>
     <Description>Register, update and unregister custom uri schemes (protocol handlers) in the Windows registry, with COM support.</Description>
 
     <PackageId>Eze.IO.UriScheme</PackageId>
