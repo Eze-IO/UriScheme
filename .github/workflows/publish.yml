@@ -33,7 +33,11 @@ jobs:
 
       - name: Push to NuGet.org
         shell: bash
-        run: dotnet nuget push "artifacts/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        # Let bash expand the path, dotnet nuget push doesn't match "artifacts/*.nupkg" on Windows
+        run: |
+          for package in artifacts/*.nupkg; do
+            dotnet nuget push "$package" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
 
       - uses: actions/upload-artifact@v4
         with:
